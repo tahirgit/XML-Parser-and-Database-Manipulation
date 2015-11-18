@@ -6,41 +6,47 @@
 class ManageDatabase extends Db {
         
     public $db;
+    public $agencyID;
     public $listingTradeCode = array(
         "business" => 4,
-        'commercial' => 3, 
-        'commercialLand' => 3, 
-        'holidayRental' => 5, 
-        'rental' =>  4, 
-        'residential' => 1, 
-        'land' => 1, 
-        'rural'=> 2);
-    public $tenancy = array("vacant"=>2, "tenanted"=>1);
-    public $unitAreaCode = array("acre"=>2, "squareMeter"=>1, "hectare"=>3 );
-    public $featureHotWaterServiceTypeCode = array("gas"=>1, "electric"=>2, "solar"=>3);
-    public $authority = array("auction"=>1, "sale"=>2, "lease"=>3, "conjunctional"=>4, "tender"=>5);
-    public $statusCode = array("current"=>1, "sold"=>2, "leased"=>2, "withdrawn"=>7, "offmarket"=>6);
+        'commercial' => 3,
+        'commercialLand' => 3,
+        'holidayRental' => 5,
+        'rental' => 4,
+        'residential' => 1,
+        'land' => 1,
+        'rural' => 2);
+    public $tenancy = array("vacant" => 2, "tenanted" => 1);
+    public $unitAreaCode = array("acre" => 2, "squareMeter" => 1, "hectare" => 3);
+    public $featureHotWaterServiceTypeCode = array("gas" => 1, "electric" => 2, "solar" => 3);
+    public $authority = array("auction" => 1, "sale" => 2, "lease" => 3, "conjunctional" => 4, "tender" => 5);
+    public $statusCode = array("current" => 1, "sold" => 2, "leased" => 2, "withdrawn" => 7, "offmarket" => 6);
     
-    public function __construct() {
+    /**
+     * Create database instance in the constructor
+     */
+    public function __construct( $agency_id ) {
        $this->db = Db::instance();
+       $this->agencyID = $agency_id;
     }
     /**
      * Manage (add, update, delete) property listing in Listing table
      * @param type $property
      */
-    public function managePropertyListing( $property ) {
-        
-       foreach( $property as $item => $records) {
-           foreach($records as $fields) {
-           //check if the property already exists in our database
-           $id = $this->checkPropertyExistAlready($fields["uniqueID"]);
-           
-           //Save/Update Listings and other related tables
-           $this->storePropertyListing($item, $fields, $id[0], $id[1]);
-         }
-       }
+    public function managePropertyListing($property) {
+
+        // Store/Update parsed file records
+        foreach ($property as $item => $records) {
+            // Check and Save each record in a single file
+            foreach ($records as $fields) {
+                //check if the property already exists in our database
+                $id = $this->checkPropertyExistAlready($fields["uniqueID"]);
+                // Save/Update Listings and other related tables
+                $this->storePropertyListing($item, $fields, $id[0], $id[1]);
+            }
+        }
     }
-    
+
     /**
      * Add/Update property List
      * @param string $item Property Item name (Business, Commercial)
@@ -49,56 +55,56 @@ class ManageDatabase extends Db {
      */
     private function storePropertyListing( $item, $fields, $id = NULL, $reference_number = 0 ) {
                
-           $insert = array();
-           $insert['reference_number']  = $reference_number + rand(1, 10);
-           $insert['agency_id']  = 4; 
-           
-           // Save Address
-           if(isset($fields["address"])) {
-               $addressId = $this->saveLocalityAddress($id, $fields["address"]);
-               if($addressId != 0)
-                   $insert['locality_address_id'] = $addressId;
-           }
-                
-           $insert['locality_address_visibility_code'] = 1;
-           $insert['listing_type_code'] = $this->getListingTypeCode($item, $fields);
-           $insert['listing_trade_type_code'] = $this->getListingTradeTypeCode($item);
-           $insert["listing_market_status_code"] = $this->getStatusCode($fields["status"]);
-           $insert['listing_marketed'] = NULL; 
-           $insert['listing_publish_status_code'] = 1;
-           $insert['listing_published'] = date("Y-m-d H:i:s");
-           $insert['map_publisher_code'] = 0; 
-           $insert['map_no'] = null;
-           $insert['map_ref'] = NULL;
-           $insert['streetview_visibility_code'] = 1; 
-           if(isset($fields["headline"])) {
-                $insert['headline'] = $fields["headline"];
-                $insert['summary']  = $fields["description"];
-                $insert['description'] = $fields["description"]; 
-                $insert['external_reference_id'] = $fields["uniqueID"];
-           }
-           $insert['plot_id'] = NULL;
-           $insert['status_code'] = 1;
-          
-           $recordType = "new";
-           if(is_null($id)) {
-                $insert['created'] = date("Y-m-d H:i:s");
-                $this->db->create("listing", $insert);
-                $id =  $this->db->id();
-                $this->saveListingTypeCode($id, $insert['listing_type_code'],  $fields, $recordType);
-           }
-           else {
-               $insert['modified'] = date("Y-m-d H:i:s");; 
-               $this->db->update("listing", $insert, $id);
-               $recordType = "modify";
-               $this->saveListingTypeCode($id, $insert['listing_type_code'], $fields, $recordType);
-           }
-           
-           // save remaining data into listing_trade_type_code_table for each property   
-           if(!is_null($id)) {
-               $this->saveListingMedia($id, $item, $fields, $recordType);
-               $this->manageInListingTradeTypeCode($id, $item, $fields, $recordType);
-           }
+        $insert = array();
+        $insert['reference_number'] = $reference_number + rand(1, 10);
+        $insert['agency_id'] = $this->agencyID;
+
+        // Save Address
+        if (isset($fields["address"])) {
+            $addressId = $this->saveLocalityAddress($id, $fields["address"]);
+            if ($addressId != 0)
+                $insert['locality_address_id'] = $addressId;
+        }
+
+        $insert['locality_address_visibility_code'] = 1;
+        $insert['listing_type_code'] = $this->getListingTypeCode($item, $fields);
+        $insert['listing_trade_type_code'] = $this->getListingTradeTypeCode($item);
+        $insert["listing_market_status_code"] = $this->getStatusCode($fields["status"]);
+        $insert['listing_marketed'] = NULL;
+        $insert['listing_publish_status_code'] = 1;
+        $insert['listing_published'] = date("Y-m-d H:i:s");
+        $insert['map_publisher_code'] = 0;
+        $insert['map_no'] = null;
+        $insert['map_ref'] = NULL;
+        $insert['streetview_visibility_code'] = 1;
+        if (isset($fields["headline"])) {
+            $insert['headline'] = $fields["headline"];
+            $insert['summary'] = $fields["description"];
+            $insert['description'] = $fields["description"];
+            $insert['external_reference_id'] = $fields["uniqueID"];
+        }
+        $insert['plot_id'] = NULL;
+        $insert['status_code'] = 1;
+
+        $recordType = "new";
+        if (is_null($id)) {
+            $insert['created'] = date("Y-m-d H:i:s");
+            $this->db->create("listing", $insert);
+            $id = $this->db->id();
+            $this->saveListingTypeCode($id, $insert['listing_type_code'], $fields, $recordType);
+        } else {
+            $insert['modified'] = date("Y-m-d H:i:s");
+            ;
+            $this->db->update("listing", $insert, $id);
+            $recordType = "modify";
+            $this->saveListingTypeCode($id, $insert['listing_type_code'], $fields, $recordType);
+        }
+
+        // save remaining data into listing_trade_type_code_table for each property   
+        if (!is_null($id)) {
+            $this->saveListingMedia($id, $item, $fields, $recordType);
+            $this->manageInListingTradeTypeCode($id, $item, $fields, $recordType);
+        }
     }
     
     /**
@@ -109,23 +115,23 @@ class ManageDatabase extends Db {
      */
     private function manageInListingTradeTypeCode($id, $item, $fields, $recordType) {
         
-        switch($item) {
+        switch ($item) {
             case "business":
                 $this->savePropertyBusiness($id, $fields, $recordType);
                 break;
             case "commercial":
                 $this->savePropertyCommercial($id, $fields, $recordType);
                 break;
-              case "residential":
+            case "residential":
                 $this->savePropertyResidential($id, $fields, $recordType);
                 break;
-             case "rural":
+            case "rural":
                 $this->savePropertyRural($id, $fields, $recordType);
                 break;
             case "holidayRental":
                 $this->savePropertyHolidayRental($id, $fields, $recordType);
                 break;
-                       
+
             default :
                 //do nothing
                 break;
@@ -142,32 +148,31 @@ class ManageDatabase extends Db {
     private function savePropertyBusiness($id, $fields, $recordType) {
         $add = array();
         $add['listing_id'] = $id;
-        if(isset($fields["businessCategory"][0]["id"]))
+        if (isset($fields["businessCategory"][0]["id"]))
             $add['listing_trade_business_property_type_code'] = $this->getPropertyCategoryID($fields["businessCategory"][0]["id"], "listing_trade_business_property_type_code");
         $add['listing_trade_business_sub_type_code'] = 1;
-        if(isset($fields["buildingDetails"]["area"]) )
-            $add['building_area'] =   $fields["buildingDetails"]["area"];
-        if(isset($fields["buildingDetails"]["energyRating"]) )
-            $add['energy_rating'] =  $fields["buildingDetails"]["energyRating"];   
-        if(isset($fields["takings"]))
-            $add['takings'] =  $fields["takings"];
-        if(isset($fields["address"]["site"]))
-            $add['site'] = $fields["address"]["site"]; 
-        if(isset($fields["terms"]))
-            $add['terms'] = $fields["terms"]; 
-        if(isset($fields["franchise"]))
+        if (isset($fields["buildingDetails"]["area"]))
+            $add['building_area'] = $fields["buildingDetails"]["area"];
+        if (isset($fields["buildingDetails"]["energyRating"]))
+            $add['energy_rating'] = $fields["buildingDetails"]["energyRating"];
+        if (isset($fields["takings"]))
+            $add['takings'] = $fields["takings"];
+        if (isset($fields["address"]["site"]))
+            $add['site'] = $fields["address"]["site"];
+        if (isset($fields["terms"]))
+            $add['terms'] = $fields["terms"];
+        if (isset($fields["franchise"]))
             $add['franchise'] = $fields["franchise"];
-        $add['status_code'] = 1; 
-        
-           if( $recordType == "new" ) {
-                $add['created'] = date("Y-m-d H:i:s");
-                $this->db->create("listing_trade_business", $add);
-           }
-           else {
-               $add['modified'] = date("Y-m-d H:i:s");; 
-               $this->db->update("listing_trade_business", $add, "listing_id = ".$id);
-           }
-           return;
+        $add['status_code'] = 1;
+
+        if ($recordType == "new") {
+            $add['created'] = date("Y-m-d H:i:s");
+            $this->db->create("listing_trade_business", $add);
+        } else {
+            $add['modified'] = date("Y-m-d H:i:s");
+            $this->db->update("listing_trade_business", $add, "listing_id = " . $id);
+        }
+        return;
     }
     /** 2. Commercial
      * Save In Commercial Trade table
@@ -340,58 +345,54 @@ class ManageDatabase extends Db {
      * @param strin $item Property Name
      * @param array $fields Property fields
      * @param string $recordType New/Modify
+     * image id (m|a|b|c|d|e|f|g|h|i|j|k|l|n|o|p|q|r|s|t|u|v|w|x|y|z|)
+     * Floor plan id 1|2
      */
     private function saveListingMedia($id, $item, $fields, $recordType) {
         
+        // 1. Images: Download and Store Images from the xml 
         $add = array();
         $add["listing_id"] = $id;
         $add['status_code'] = 1;  
-        // Store Images Medium
-        if( isset($fields["img_m"])) {
-            $add["path"] = $add["path_original"] = $fields["img_m"];
-            $add["listing_asset_type_code"] = 1;
-            if ($recordType == "new") {
-                $add['created'] = date("Y-m-d H:i:s");
-                $this->db->create("listing_asset", $add);
-            }  
-        }
-        //////////////////////////////
-        $add = array();
-        $add["listing_id"] = $id;
-        $add['status_code'] = 1; 
-        if (isset($fields["img_a"])) {
-            $add["path"] = $add["path_original"] = $fields["img_a"];
-            $add["listing_asset_type_code"] = 1;
-            if ($recordType == "new") {
-                $add['created'] = date("Y-m-d H:i:s");
-                $this->db->create("listing_asset", $add);
+        // Store Images with id
+        foreach (range('a', 'z') as $letter) {
+            if (isset($fields["img_" . $letter])) {
+                $url = $fields["img_" . $letter]; // image live link http
+                // Download and Store images in the local Directory
+                $path = $this->createStoreAsset($id, $url, "still");
+                $add["listing_asset_type_code"] = 1;
+                if ($recordType == "new" && !empty($path) ) {
+                    $add["path"] = $add["path_original"] = $path["path"];
+                    $add["mime_type"] = $path["type"];
+                    $add["height"] = $path["height"];
+                    $add["width"]  = $path["width"];
+                    $add['created'] = date("Y-m-d H:i:s");
+                    $this->db->create("listing_asset", $add);
+                }
             }
         }
 
-        // Store Floor plans
+
+        // 2. Floor Plans: Download And storeStore Floor plans
         $ins = array();
-        $ins['status_code'] = 1;  
         $ins["listing_id"] = $id;
-        if( isset($fields["floorplan_1"])) {
-            $ins["path"] = $ins["path_original"] = $fields["floorplan_1"];
-            $ins["listing_asset_type_code"] = 2;
-             if ($recordType == "new") {
-                $ins['created'] = date("Y-m-d H:i:s");
-                $this->db->create("listing_asset", $ins);
-            }  
-        }
-        ///////////
-        $ins = array();
-        $ins['status_code'] = 1;  
-        $ins["listing_id"] = $id;
-         if( isset($fields["floorplan_2"])) {
-            $ins["path"] = $ins["path_original"] = $fields["floorplan_2"];
-            $ins["listing_asset_type_code"] = 2;
-            if ($recordType == "new") {
-                $ins['created'] = date("Y-m-d H:i:s");
-                $this->db->create("listing_asset", $ins);
-            }  
-        }  
+        $ins['status_code'] = 1; 
+        for ($i = 1; $i <= 2; $i++) {
+            if (isset($fields["floorplan_" . $i])) {
+                $url = $fields["floorplan_" . $i]; // Floor Plan live link http
+                // Download and Store Floor plans images in the local Directory
+                $path = $this->createStoreAsset($id, $url, "floor-plan");
+                $ins["listing_asset_type_code"] = 2;
+                if ($recordType == "new" && !empty($path) ) {
+                    $ins["path"] = $ins["path_original"] = $path["path"];
+                    $ins["mime_type"] = $path["type"];
+                    $ins["height"] = $path["height"];
+                    $ins["width"]  = $path["width"];
+                    $ins['created'] = date("Y-m-d H:i:s");
+                    $this->db->create("listing_asset", $ins);
+                }
+            }
+        }        
         return;
     }
     /**
@@ -655,5 +656,40 @@ class ManageDatabase extends Db {
             
             return isset($this->statusCode[$status]) ? $this->statusCode[$status]:1;
         }
+    }
+    
+    /**
+     * Download and store images locally in Agency relavent directories
+     * @param int $id Listing ID
+     * @param string $url Image Live URL
+     * @param string $assetType still or floor-plan or video
+     * @return string Local path
+     */
+    private function createStoreAsset($id, $url, $assetType = "still") {
+        global $image_base_path;
+        $assetDirectory = preg_replace("/{agency_id}/", $this->agencyID, $image_base_path);
+        $assetDirectory = preg_replace("/{listing_id}/", $id, $assetDirectory);
+        $assetDirectory = preg_replace("/{asset_type}/", $assetType, $assetDirectory);
+        
+        // Create asset directory if not exists
+        if( !is_dir($assetDirectory) ) {
+            mkdir($assetDirectory, 777, TRUE); // Create recursive sub-directories
+        }
+        
+        // Download and save locally
+        if( $imageString = @file_get_contents($url) ) {
+            $save = file_put_contents($assetDirectory.basename($url), $imageString);
+            if( $save ) {
+                $image = $assetDirectory.basename($url);
+                list($width, $height, $type, $attr) = getimagesize($image);
+                
+                return array("path"=>$image, "type"=>$type, "height"=>$height, "width"=>$width);
+            }
+            else 
+                return "";
+        } else {
+            return "";
+        }
+            
     }
 }

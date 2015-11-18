@@ -1,12 +1,23 @@
 <?php
  
+/**************************************************************
+ * Execute script for the following Agengy ID 
+ **************************************************************/
+$agencyID = [4]; // You can add Agency IDs comma separated [1,2,3,4,...]
+// Note: $agencyID can be filled with Database stored IDs from table: agency
+
 /************************************************************** 
  * XML files working directories.
  **************************************************************/
- $xml_files_dir = "directories/xml_files/"; // Current files to be processed
- $processed_dir = "directories/processed/"; // Files that aleady been processed
- $failed_dir    = "directories/failed/";  // Files failed to process.
+ $xml_files_dir = "directories/{agency_id}/xml_files/"; // Current files to be processed
+ $processed_dir = "directories/{agency_id}/processed/"; // Files that aleady been processed
+ $failed_dir    = "directories/{agency_id}/failed/";  // Files failed to process.
 
+ /*************************************************************
+  * Images Directories
+  *************************************************************/
+  $image_base_path = "agency/{agency_id}/listing/{listing_id}/{asset_type}/";
+ 
  /**************************************************************     
   * Property Items and Items Fields
   * Source: http://ask.realestate.com.au/reaxml/propertylistdtd/

@@ -13,15 +13,6 @@ Db::config( 'user',     $user );
 Db::config( 'password', $pass );
 require_once ("lib/class.manageDatabase.php");
 
-//
-// $db = Db::instance();
-// $select = $db->select("agency");
-// while($r = $select->fetch()) {
-//     echo "<pre>"; print_r($r);
-//  
-// }
-// print_r($data);
-// exit;
            
 
 
