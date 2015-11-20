@@ -15,7 +15,7 @@ require_once ("config/config.inc");
 // REA XML parser
 require_once("parser/rea_xml.class.php");
 
-// Execute Script for each Agency 
+// Execute Script for each Agency $agengyID defined in init.php
 foreach ($agencyID as $agency) {
     
     // Directories for each Agency
